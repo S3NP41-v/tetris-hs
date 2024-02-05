@@ -35,6 +35,9 @@ ghc-options:
 
 library:
   source-dirs: src
+  dependencies:
+  - GLUT
+  - time
 
 executables:
   tetris-hs-exe:
@@ -47,6 +50,7 @@ executables:
     dependencies:
     - tetris-hs
     - GLUT
+    - time
 
 tests:
   tetris-hs-test:

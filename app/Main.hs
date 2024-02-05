@@ -1,32 +1,34 @@
 module Main where
 
+import Data.IORef
 import Graphics.UI.GLUT
- 
+import Control.Monad    ( void )
+
+
+import Input
+import Display
+import State
+
+
 
 main :: IO ()
 main = do
-  (_progName, _args) <- getArgsAndInitialize
-  _window <- createWindow "Monad Your Gonad"
-  displayCallback $= display
-  reshapeCallback $= Just reshape
+  void $ initialize "Monad Your Gonad" []
+
+  gsRef <- newIORef initialState
+
+  initialDisplayMode $= [RGBAMode, DoubleBuffered]
+  initialWindowSize  $= Size (fromIntegral xRes) (fromIntegral yRes)
+
+  void $ createWindow "Monad Your Gonad"
+
+  displayCallback         $= display gsRef
+  reshapeCallback         $= Just (\_ -> viewport $= (Position 0 0, Size (fromIntegral xRes) (fromIntegral yRes)) >> postRedisplay Nothing)
+  keyboardMouseCallback   $= Just (inputHandler gsRef)
+
+  passiveMotionCallback   $= Just (mouseMotion gsRef)
+  motionCallback          $= Just (mouseMotion gsRef)
+
+  idleCallback            $= Just (postRedisplay Nothing)
 
   mainLoop
-
-
-display :: DisplayCallback
-display = do
-  let color3f r g b = color $ Color3 r g (b :: GLfloat)
-      vertex3f x y z = vertex $ Vertex3 x y (z :: GLfloat)
-  clear [ColorBuffer]
-  renderPrimitive Triangles $ do
-    color3f  1 0 0
-    vertex3f 0 0.5 0
-    vertex3f 0.5 0 0
-    vertex3f (-0.5) 0 0
-
-  flush
-
-reshape :: ReshapeCallback
-reshape size = do
-  viewport $= (Position 0 0, size)
-  postRedisplay Nothing
