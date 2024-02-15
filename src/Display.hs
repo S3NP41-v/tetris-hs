@@ -1,8 +1,7 @@
-module Display ( display, mouseMotion ) where
+module Display ( display ) where
 
 import Graphics.UI.GLUT
 import Data.IORef
-import Data.Time.Clock    ( getCurrentTime, diffUTCTime )
 import Control.Concurrent ( threadDelay )
 
 import State
@@ -11,34 +10,32 @@ import State
 
 display :: IORef GameState -> DisplayCallback
 display gsRef = do
-  clear [ColorBuffer]
-  loadIdentity
+  clear [ColorBuffer] >> loadIdentity
   threadDelay $ floor ((1 / fromIntegral frameRate) * 10^6)
-
+  
   gs <- readIORef gsRef
-  let (Position x' y') = blockPos gs
-
 
   -- outline of the play area
   playAreaOutline
   -- game state, score, next piece ETC
   gameStateDisplay gsRef
-
-
-
-  block (fromIntegral x', fromIntegral y') (170, 20, 170)
-  blockOutline (fromIntegral x' + blockScale, fromIntegral y') (170, 20, 170)
-  
+  -- the game board
+  gameBoard gsRef
 
   gsRef $= gs{frame=frame gs + 1}
   swapBuffers
 
 
-mouseMotion :: IORef GameState -> Position -> IO ()
-mouseMotion gsRef p = do
+gameBoard :: IORef GameState -> IO ()
+gameBoard gsRef = do
   gs <- readIORef gsRef
-  gsRef $= gs{blockPos = p}
 
+  -- Controlled Piece
+  case currentTetromino gs of
+    Nothing -> pure ()
+    Just t  -> tetromino (blockScale, 0) t
+  
+  mapM_ (\(Mino (x, y) rgb) -> block (blockScale * (fromIntegral x + 1), blockScale * fromIntegral y) rgb) (unmovableTetrominos gs)
 
 
 playAreaOutline :: IO ()
@@ -63,17 +60,27 @@ gameStateDisplay gsRef = do
 
   -- Next piece display
   putText (12.5 * blockScale, 4*blockScale) (255, 255, 255) "NEXT"
-  -- putTetromino -- display tetromino here
-  -- TEMP FOR LOOKS
-  block   (13.5 * blockScale, 5.5*blockScale) (170, 20, 170)
-  block   (14.5 * blockScale, 5.5*blockScale) (170, 20, 170)
-  block   (12.5 * blockScale, 6.5*blockScale) (170, 20, 170)
-  block   (13.5 * blockScale, 6.5*blockScale) (170, 20, 170)
-  -- /TEMP FOR LOOKS
+  case next gs of
+    Nothing                           -> pure ()
+    Just t@(Tetromino _ _ TetrominoI) -> tetromino (15.5 * blockScale, 6.5 * blockScale) t
+    Just t                            -> tetromino (14 * blockScale, 6.5 * blockScale) t
+
+  -- Stored piece display
+  putText (12.5 * blockScale, 7.5*blockScale) (255, 255, 255) "STORED"
+  case stored gs of
+    Nothing -> pure ()
+    Just t@(Tetromino _ _ TetrominoI) -> tetromino (15.5 * blockScale, 10 * blockScale) t
+    Just t                            -> tetromino (14 * blockScale, 10 * blockScale) t
+
   where
     prepend0s :: String -> String
     prepend0s cs = replicate (6 - length cs) '0' ++ cs
 
+
+tetromino :: (Float, Float) -> Tetromino -> IO ()
+tetromino _      (Tetromino [] _ _)                         = pure ()
+tetromino (x, y) (Tetromino ((Mino (x', y') rgb): ts) r t) = block (x + blockScale * fromIntegral x', y + blockScale * fromIntegral y') rgb
+                                                           >> tetromino (x, y) (Tetromino ts r t)
 
 block :: (Float, Float) -> (Float, Float, Float) -> IO ()
 block (x, y) (r, g, b) =
@@ -102,9 +109,6 @@ blockOutline (x, y) (r, g, b) =
     stVertex2f (x              + blockShadow, y - blockScale + blockShadow )
     stVertex2f (x + blockScale - blockShadow, y - blockScale + blockShadow )
     stVertex2f (x + blockScale - blockShadow, y              - blockShadow )
-
-
-
 
 
 vertex2f :: GLfloat -> GLfloat -> IO ()
