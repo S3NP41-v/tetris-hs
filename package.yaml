@@ -1,22 +1,13 @@
 name:                tetris-hs
 version:             0.1.0.0
-github:              "githubuser/tetris-hs"
-license:             BSD-3-Clause
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2024 Author name here"
+github:              "S3NP41-v/tetris-hs"
+license:             MIT
+author:              "S3NP41"
+maintainer:          "S3NP41v@gmail.com"
 
 extra-source-files:
 - README.md
-- CHANGELOG.md
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
 description:         Please see the README on GitHub at <https://github.com/githubuser/tetris-hs#readme>
 
 dependencies:

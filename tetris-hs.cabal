@@ -1,4 +1,4 @@
-cabal-version: 2.2
+cabal-version: 1.12
 
 -- This file has been generated from package.yaml by hpack version 0.35.1.
 --
@@ -7,21 +7,18 @@ cabal-version: 2.2
 name:           tetris-hs
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/tetris-hs#readme>
-homepage:       https://github.com/githubuser/tetris-hs#readme
-bug-reports:    https://github.com/githubuser/tetris-hs/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2024 Author name here
-license:        BSD-3-Clause
-license-file:   LICENSE
+homepage:       https://github.com/S3NP41-v/tetris-hs#readme
+bug-reports:    https://github.com/S3NP41-v/tetris-hs/issues
+author:         S3NP41
+maintainer:     S3NP41v@gmail.com
+license:        MIT
 build-type:     Simple
 extra-source-files:
     README.md
-    CHANGELOG.md
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/tetris-hs
+  location: https://github.com/S3NP41-v/tetris-hs
 
 library
   exposed-modules:
@@ -30,8 +27,6 @@ library
       State
       Utils
   other-modules:
-      Paths_tetris_hs
-  autogen-modules:
       Paths_tetris_hs
   hs-source-dirs:
       src
@@ -46,8 +41,6 @@ library
 executable tetris-hs-exe
   main-is: Main.hs
   other-modules:
-      Paths_tetris_hs
-  autogen-modules:
       Paths_tetris_hs
   hs-source-dirs:
       app

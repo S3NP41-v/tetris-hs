@@ -19,7 +19,7 @@ inputHandler gsRef key kState _ _ = case (key, kState) of
   (Char 'x', Down)            -> rotateOnKey gsRef ToLeft   -- rotate left
   (Char 'c', Down)            -> rotateOnKey gsRef ToRight  -- rotate right
 
-  (Char ' ', Down)            -> undefined
+  (Char ' ', Down)            -> slamOnKey gsRef
   _                           -> return ()
 inputHandler _ _ _ _ _        = return ()
 
@@ -42,14 +42,21 @@ moveOnKey gsRef xy = do
     Nothing -> pure ()
 
 
+slamOnKey :: IORef GameState -> IO ()
+slamOnKey gsRef = do
+  gs <- readIORef gsRef
+  case currentTetromino gs of
+    Just t  -> gsRef $= gs{currentTetromino = Just (moveTetromino (0, last [y | y <- [0..20], canMove (0, y) t (unmovableTetrominos gs)]) t)}
+    Nothing -> pure ()
+
+
 storageOnKey :: IORef GameState -> IO ()
 storageOnKey gsRef = do
   gs <- readIORef gsRef
   
   case stored gs of
-    Nothing -> do  -- if the storage is empty
-      (pulls, nT) <- pullTetromino (pulls gs)
-      case currentTetromino gs of
-        Just (Tetromino _ _ t) -> gsRef $= gs{currentTetromino = next gs, stored = Just (realTetromino t), next = Just nT, pulls = pulls} -- and there is a current tetromino
-        Nothing                -> gsRef $= gs{currentTetromino = next gs, stored = Nothing,                next = Just nT, pulls = pulls} -- and there is no current tetromino
-    Just (Tetromino _ _ t) -> gsRef $= gs{currentTetromino = Just (moveTetromino dropPoint (realTetromino t)), stored = currentTetromino gs} -- if the storage has a tetromino
+    Just sT -> gsRef $= gs{stored = strictMoveMTetromino dropPoint (currentTetromino gs), currentTetromino = Just (strictMoveTetromino dropPoint sT)}
+    Nothing -> do
+      (pulls', nT) <- pullTetromino (pulls gs)
+      gsRef $= gs{stored = strictMoveMTetromino dropPoint (currentTetromino gs), currentTetromino = strictMoveMTetromino dropPoint (next gs), next = Just nT, pulls = pulls'}
+

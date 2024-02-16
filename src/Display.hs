@@ -69,8 +69,8 @@ gameStateDisplay gsRef = do
   putText (12.5 * blockScale, 7.5*blockScale) (255, 255, 255) "STORED"
   case stored gs of
     Nothing -> pure ()
-    Just t@(Tetromino _ _ TetrominoI) -> tetromino (15.5 * blockScale, 10 * blockScale) t
-    Just t                            -> tetromino (14 * blockScale, 10 * blockScale) t
+    Just t@(Tetromino _ _ TetrominoI) -> tetromino (15.5 * blockScale, 10 * blockScale) (realTetromino TetrominoI)
+    Just (Tetromino _ _ t)                            -> tetromino (14 * blockScale, 10 * blockScale) (realTetromino t)
 
   where
     prepend0s :: String -> String
