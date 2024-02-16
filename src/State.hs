@@ -86,7 +86,7 @@ gameLogicLoop :: IORef GameState -> IO ()
 gameLogicLoop gsRef = do
   gs <- readIORef gsRef
 
-  gameOver (unmovableTetrominos gs)
+  gameOver gs (unmovableTetrominos gs)
 
   -- advance piece
   when (frame gs `rem` toInteger (30 - level gs) == 0) $ case currentTetromino gs of
@@ -111,9 +111,9 @@ gameLogicLoop gsRef = do
   postRedisplay Nothing  -- just so the state is actually rendered
 
 -- TODO: finish gameOver
-gameOver :: [Mino] -> IO ()
-gameOver ts = when (any (\(Mino (_, y) _) -> y <= snd dropPoint) ts) $ do
-  putStrLn "Game Over"
+gameOver :: GameState -> [Mino] -> IO ()
+gameOver gs ts = when (any (\(Mino (_, y) _) -> y <= snd dropPoint) ts) $ do
+  putStrLn (unlines ["Game Over!", "Score: " ++ show (score gs), "Lines Cleared: " ++ show (linesCleared gs)])
   exitSuccess
 
 

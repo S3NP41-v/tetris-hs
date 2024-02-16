@@ -2,6 +2,8 @@
 
  its a tetris clone, i really dont think i need to explain what tetris is as it is in the top 3 of best selling games in the world<br>
  and in the rare event that you haven't heard of it, welcome to earth, you must be new here, enjoy your stay!
+ 
+ i expect a LOT of bugs, and so should you!
 <br>-}
 
 ## {-  Controls
