@@ -12,29 +12,47 @@ display :: IORef GameState -> DisplayCallback
 display gsRef = do
   clear [ColorBuffer] >> loadIdentity
   threadDelay $ floor ((1 / fromIntegral frameRate) * 10^6)
-  
-  gs <- readIORef gsRef
 
-  -- outline of the play area
-  playAreaOutline
-  -- game state, score, next piece ETC
-  gameStateDisplay gsRef
-  -- the game board
-  gameBoard gsRef
+  gs <- readIORef gsRef
+  displayContext gsRef (context gs)
 
   gsRef $= gs{frame=frame gs + 1}
   swapBuffers
+
+
+displayContext :: IORef GameState -> Context -> IO ()
+displayContext gsRef Settings = undefined
+displayContext gsRef GameMenu = undefined
+displayContext gsRef GameOver = gameOver  gsRef
+displayContext gsRef Game     = gameBoard gsRef >> playAreaOutline >> gameStateDisplay gsRef >> gameBoard gsRef
+
+
+gameOver :: IORef GameState -> IO ()
+gameOver gsRef = do
+  gs <- readIORef gsRef
+
+  -- blinking game over
+  if (frame gs `mod` toInteger frameRate) > (toInteger frameRate `div` 2)
+    then putText (fromIntegral xRes / 3, fromIntegral yRes / 10) (255, 255, 255) "GAME OVER"
+    else putText (fromIntegral xRes / 3, fromIntegral yRes / 10) (150, 150, 150) "GAME OVER"
+
+  putText (fromIntegral xRes / 3, fromIntegral yRes / 3) (255, 255, 255) "  SCORE  "
+  putText (fromIntegral xRes / 3, fromIntegral yRes / 3 + blockScale) (255, 255, 255) (" " ++ prepend0s (show (score gs)))
 
 
 gameBoard :: IORef GameState -> IO ()
 gameBoard gsRef = do
   gs <- readIORef gsRef
 
-  -- Controlled Piece
+  -- Controlled Piece and its ghost
   case currentTetromino gs of
     Nothing -> pure ()
-    Just t  -> tetromino (blockScale, 0) t
-  
+    Just t  -> do
+      let (_, y) = lowestMove t (unmovableTetrominos gs)
+      tetromino (blockScale, 0) t
+      outlineTetromino (blockScale, fromIntegral y * blockScale) t
+
+  -- Board
   mapM_ (\(Mino (x, y) rgb) -> block (blockScale * (fromIntegral x + 1), blockScale * fromIntegral y) rgb) (unmovableTetrominos gs)
 
 
@@ -42,7 +60,7 @@ playAreaOutline :: IO ()
 playAreaOutline = do
   -- gray blocks outline
   -- walls
-  mapM_ (\i -> block (0,               fromIntegral yRes - (blockScale * i)) (31, 31, 31) 
+  mapM_ (\i -> block (0,               fromIntegral yRes - (blockScale * i)) (31, 31, 31)
             >> block (blockScale * 11, fromIntegral yRes - (blockScale * i)) (31, 31, 31)
         ) [0..20]
 
@@ -58,29 +76,43 @@ gameStateDisplay gsRef = do
   putText (12.5 * blockScale,   blockScale) (255, 255, 255) "SCORE"
   putText (12.5 * blockScale, 2*blockScale) (255, 255, 255) (prepend0s (show (score gs)))
 
+  -- Level
+  putText (12.5 * blockScale, 3.5*blockScale) (255, 255, 255) "LEVEL"
+  putText (12.5 * blockScale, 4.5*blockScale) (255, 255, 255) (show (level gs))
+
+  -- Lines Cleared
+  putText (12.5 * blockScale, 6*blockScale) (255, 255, 255) "LINES"
+  putText (12.5 * blockScale, 7*blockScale) (255, 255, 255) (show (linesCleared gs))
+
   -- Next piece display
-  putText (12.5 * blockScale, 4*blockScale) (255, 255, 255) "NEXT"
+  putText (12.5 * blockScale, 8.5*blockScale) (255, 255, 255) "NEXT"
   case next gs of
     Nothing                           -> pure ()
-    Just t@(Tetromino _ _ TetrominoI) -> tetromino (15.5 * blockScale, 6.5 * blockScale) t
-    Just t                            -> tetromino (14 * blockScale, 6.5 * blockScale) t
+    Just t@(Tetromino _ _ TetrominoI) -> tetromino (15.5 * blockScale, 11 * blockScale) t
+    Just t                            -> tetromino (14 * blockScale,   11 * blockScale) t
 
   -- Stored piece display
-  putText (12.5 * blockScale, 7.5*blockScale) (255, 255, 255) "STORED"
+  putText (12.5 * blockScale, 12*blockScale) (255, 255, 255) "STORED"
   case stored gs of
     Nothing -> pure ()
-    Just t@(Tetromino _ _ TetrominoI) -> tetromino (15.5 * blockScale, 10 * blockScale) (realTetromino TetrominoI)
-    Just (Tetromino _ _ t)                            -> tetromino (14 * blockScale, 10 * blockScale) (realTetromino t)
+    Just t@(Tetromino _ _ TetrominoI) -> tetromino (15.5 * blockScale, 14.5 * blockScale) (realTetromino TetrominoI)
+    Just (Tetromino _ _ t)            -> tetromino (14 * blockScale,   14.5 * blockScale) (realTetromino t)
 
-  where
-    prepend0s :: String -> String
-    prepend0s cs = replicate (6 - length cs) '0' ++ cs
+
+prepend0s :: String -> String
+prepend0s cs = replicate (7 - length cs) '0' ++ cs
 
 
 tetromino :: (Float, Float) -> Tetromino -> IO ()
 tetromino _      (Tetromino [] _ _)                         = pure ()
 tetromino (x, y) (Tetromino ((Mino (x', y') rgb): ts) r t) = block (x + blockScale * fromIntegral x', y + blockScale * fromIntegral y') rgb
                                                            >> tetromino (x, y) (Tetromino ts r t)
+
+outlineTetromino :: (Float, Float) -> Tetromino -> IO ()
+outlineTetromino _      (Tetromino [] _ _)                         = pure ()
+outlineTetromino (x, y) (Tetromino ((Mino (x', y') rgb): ts) r t) = blockOutline (x + blockScale * fromIntegral x', y + blockScale * fromIntegral y') rgb
+                                                                 >> outlineTetromino (x, y) (Tetromino ts r t)
+
 
 block :: (Float, Float) -> (Float, Float, Float) -> IO ()
 block (x, y) (r, g, b) =

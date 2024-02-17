@@ -1,8 +1,9 @@
 module State
     ( yRes, xRes, frameRate, blockScale, blockShadow, dropPoint, initialState, scoreScale
-    , GameState(..), Rotation(..), Mino(..), Tetromino(..), TetrominoType(..)
+    , GameState(..), Rotation(..), Mino(..), Tetromino(..), TetrominoType(..), Context(..)
     , canRotate, canMove
-    , realTetromino, pullTetromino, manyPull, rotateTetromino, moveTetromino, moveMTetromino, mapBody, strictMoveTetromino, strictMoveMTetromino
+    , realTetromino, pullTetromino, manyPull, rotateTetromino, moveTetromino, moveMTetromino
+    , mapBody, tetBody, mTetBody, strictMoveTetromino, strictMoveMTetromino, lowestMove
     , gameLogicLoop
     ) where
 
@@ -55,6 +56,8 @@ initialState = GameState
   , next          = Nothing
   , stored        = Nothing
 
+  , context       = Game
+
   , currentTetromino    = Nothing
   , unmovableTetrominos = []
 
@@ -69,6 +72,8 @@ data GameState = GameState
   , score         :: Score
   , linesCleared  :: Lines
   , level         :: Level
+
+  , context       :: Context
 
   , next   :: Maybe Tetromino
   , stored :: Maybe Tetromino
@@ -86,35 +91,36 @@ gameLogicLoop :: IORef GameState -> IO ()
 gameLogicLoop gsRef = do
   gs <- readIORef gsRef
 
-  gameOver gs (unmovableTetrominos gs)
+  when (context gs == Game) $ do
+    gameOver gsRef (unmovableTetrominos gs)
 
-  -- advance piece
-  when (frame gs `rem` toInteger (30 - level gs) == 0) $ case currentTetromino gs of
-    Nothing -> return ()
-    Just t  -> if canMove (0, 1) t (unmovableTetrominos gs)
-      then gsRef $= gs{currentTetromino = Just (moveTetromino (0, 1) t)}
-      else do
-        (pulls, nx) <- pullTetromino (pulls gs)
-        let (l, nTs) = lineClears (mTetBody (currentTetromino gs) ~++ unmovableTetrominos gs)
-        let lClears  = linesCleared gs + l
+    -- advance piece
+    when (frame gs `rem` toInteger (30 - level gs) == 0) $ case currentTetromino gs of
+      Nothing -> return ()
+      Just t  -> if canMove (0, 1) t (unmovableTetrominos gs)
+        then gsRef $= gs{currentTetromino = Just (moveTetromino (0, 1) t)}
+        else do
+          (pulls, nx) <- pullTetromino (pulls gs)
+          let (l, nTs) = lineClears (mTetBody (currentTetromino gs) ~++ unmovableTetrominos gs)
+          let lClears  = linesCleared gs + l
 
-        gsRef $= gs
-          { currentTetromino    = moveMTetromino dropPoint (next gs)
-          , unmovableTetrominos = nTs
-          , next                = Just nx
-          , pulls               = pulls
-          , score               = score gs + scoreScale (level gs) l
-          , linesCleared        = lClears
-          , level               = min 29 (lClears `div` 10)
-          }
+          gsRef $= gs
+            { currentTetromino    = moveMTetromino dropPoint (next gs)
+            , unmovableTetrominos = nTs
+            , next                = Just nx
+            , pulls               = pulls
+            , score               = score gs + scoreScale (level gs) l
+            , linesCleared        = lClears
+            , level               = min 29 (lClears `div` 10)
+            }
 
   postRedisplay Nothing  -- just so the state is actually rendered
 
--- TODO: finish gameOver
-gameOver :: GameState -> [Mino] -> IO ()
-gameOver gs ts = when (any (\(Mino (_, y) _) -> y <= snd dropPoint) ts) $ do
-  putStrLn (unlines ["Game Over!", "Score: " ++ show (score gs), "Lines Cleared: " ++ show (linesCleared gs)])
-  exitSuccess
+gameOver :: IORef GameState -> [Mino] -> IO ()
+gameOver gsRef ts = do
+  gs <- readIORef gsRef
+  when (any (\(Mino (_, y) _) -> y <= snd dropPoint) ts) $ do
+    gsRef $= gs{context = GameOver}
 
 
 -- fix this
@@ -147,6 +153,13 @@ strictMoveMTetromino _ Nothing                   = Nothing
 -- move the tetromino in the direction of the 2D vector
 moveTetromino :: (Int, Int) -> Tetromino -> Tetromino
 moveTetromino xy (Tetromino ms r t) = Tetromino (map (moveMino xy) ms) (r ~+ xy) t
+
+-- lowest a tetromino can go
+lowestMove :: Tetromino -> [Mino] -> (Int, Int)
+lowestMove t ms = last' $ takeWhile (\xy -> canMove xy t ms) [(0, y) | y <- [0..20]]
+  where 
+    last' [] = (0, 0)
+    last' xs = last xs
 
 moveMTetromino :: (Int, Int) -> Maybe Tetromino -> Maybe Tetromino
 moveMTetromino xy (Just (Tetromino ms r t)) = Just $ Tetromino (map (moveMino xy) ms) (r ~+ xy) t
@@ -234,6 +247,14 @@ data Mino = Mino BoardPos2D (GLfloat, GLfloat, GLfloat)
   deriving ( Show )
 instance Eq Mino where
   (==) (Mino p1 _) (Mino p2 _) = p1 == p2
+
+
+data Context
+  = GameMenu
+  | Settings
+  | Game
+  | GameOver
+  deriving ( Show, Eq )
 
 
 -- pretty types:

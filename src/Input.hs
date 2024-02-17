@@ -45,10 +45,21 @@ moveOnKey gsRef xy = do
 slamOnKey :: IORef GameState -> IO ()
 slamOnKey gsRef = do
   gs <- readIORef gsRef
+
+  -- (mTetBody (currentTetromino gs) ~++ unmovableTetrominos gs)
   case currentTetromino gs of
-    Just t  -> gsRef $= gs{currentTetromino = Just (moveTetromino (0, last [y | y <- [0..20], canMove (0, y) t (unmovableTetrominos gs)]) t)}
+    Just t  -> gsRef $= gs{currentTetromino = Just (moveTetromino (lowestMove t (unmovableTetrominos gs)) t)}
     Nothing -> pure ()
 
+  -- gs <- readIORef gsRef
+  -- (pulls', next') <- pullTetromino (pulls gs)
+  -- case currentTetromino gs of
+  --   Just t  -> gsRef $= gs{ currentTetromino    = next gs
+  --                         , unmovableTetrominos = tetBody (moveTetromino (lowestMove t (unmovableTetrominos gs)) t) ++ unmovableTetrominos gs
+  --                         , next                = Just next'
+  --                         , pulls               = pulls'
+  --                         }
+  --   Nothing -> pure ()
 
 storageOnKey :: IORef GameState -> IO ()
 storageOnKey gsRef = do

@@ -29,10 +29,6 @@ main = do
   displayCallback         $= display gsRef
   reshapeCallback         $= Just (\_ -> viewport $= (Position 0 0, Size (fromIntegral xRes) (fromIntegral yRes)) >> postRedisplay Nothing)
   keyboardMouseCallback   $= Just (inputHandler gsRef)
-
-  -- passiveMotionCallback   $= Just (mouseMotion gsRef)
-  -- motionCallback          $= Just (mouseMotion gsRef)
-
   idleCallback            $= Just (gameLogicLoop gsRef)
 
   mainLoop
