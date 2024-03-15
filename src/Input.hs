@@ -21,7 +21,7 @@ inputHandler gsRef key kState _ _ = case (key, kState) of
 
   (Char ' ', Down)            -> slamOnKey gsRef
   _                           -> return ()
-inputHandler _ _ _ _ _        = return ()
+inputHandler _ _ _ _ _         = return ()
 
 
 rotateOnKey :: IORef GameState -> Rotation -> IO ()

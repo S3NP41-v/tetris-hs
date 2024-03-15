@@ -41,9 +41,7 @@ conMap f c (x:xs) = (if c x then f x else x) : conMap f c xs
 (~:)  Nothing xs = xs
 (~:) (Just x) xs = x : xs
 
-
 -- Maybe version of `++`
 (~++) :: Maybe [a] -> [a] -> [a]
 (~++)  Nothing xs = xs
 (~++) (Just x) xs = x ++ xs
-
